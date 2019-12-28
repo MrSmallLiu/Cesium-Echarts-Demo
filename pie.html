@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Cesium+Echarts</title>
+    <script src="/cesium/Build/Cesium/Cesium.js"></script>
+    <script src="./echarts.js"></script>
+    <link rel="stylesheet" href="/cesium/Build/Cesium/Widgets/widgets.css">
+    <style>
+        #cesiumContainer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <!--设置球的容器-->
+    <!-- <canvas id="main" style="width: 400px;height:400px;"></canvas> -->
+    <div id="cesiumContainer">
+
+    </div>
+
+
+</body>
+<script>
+    var viewer = new Cesium.Viewer('cesiumContainer', {
+        shouldAnimate: false,
+        geocoder: true,
+        homeButton: true,
+        sceneModePicker: true,
+        baseLayerPicker: true,
+        navigationHelpButton: false,
+        animation: false,
+        // creditContainer:"credit",
+        timeline: false,//底面日期条
+        fullscreenButton: true,
+        vrButton: true,
+    });
+
+    //设置地图
+    var tileLayer = viewer.scene.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({ //默认加载影像图
+        url: "http://szzc.tile-service.xqsk.svc.thesky.mapscloud.cn/v1.0/gh?z={z}&x={x}&y={y}",
+        minimumLevel: 1,
+        maximumLevel: 21,
+        format: "png",
+        subdomains: "0123456789",
+        rectangle: Cesium.Rectangle.fromDegrees(-180, -80, 180, 80)
+    }));
+    option = {
+        series: [
+            {
+                name: '姓名',
+                type: 'pie',
+                radius: '100%',
+                center: ['50%', '50%'],
+                data: genData(50).seriesData,
+                label: {        //展示文本设置 
+                    normal: {
+                        show: false,
+                    }
+                }
+            }
+        ]
+    };
+    drawPie(option, viewer, { lon: 116.19777, lat: 39.03883 })
+    option = {
+        series: [
+            {
+                name: '姓名',
+                type: 'pie',
+                radius: '100%',
+                center: ['50%', '50%'],
+                data: genData(50).seriesData,
+                label: {        //展示文本设置 
+                    normal: {
+                        show: false,
+                    }
+                }
+            }
+        ]
+    };
+    drawPie(option, viewer, { lon: 102.19777, lat: 39.03883, radius : 200000.0 })
+    viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(116.19777, 39.03883, 10000000.0)
+    });
+    function drawPie(dataOption, veiwer, { radius = 100000.0, lon, lat } = {}) {
+        let canvasDom = document.createElement('canvas');
+        canvasDom.width = 400;
+        canvasDom.height = 400;
+        let myChart = echarts.init(canvasDom);
+        myChart.setOption(option);
+        myChart.on('finished', () => {
+            let criclePrimitive = getCriclePrimitive(myChart, { radius, lon, lat })
+            viewer.scene.primitives.add(criclePrimitive)
+            myChart.dispose();
+            myChart = null;
+            canvasDom = null;
+        })
+    }
+    function getCriclePrimitive(chart, { radius = 100000.0, lon, lat } = {}) {
+        let circle = new Cesium.CircleGeometry({
+            center: Cesium.Cartesian3.fromDegrees(lon, lat),
+            radius: radius
+        });
+        let circleGeometry = Cesium.CircleGeometry.createGeometry(circle);
+        let circleGeometryInstance = new Cesium.GeometryInstance({
+            geometry: circleGeometry,
+            attributes: {
+                color: Cesium.ColorGeometryInstanceAttribute.fromColor(Cesium.Color.ORANGE)
+            }
+        });
+        let criclePrimitive = new Cesium.Primitive({
+            geometryInstances: [
+                circleGeometryInstance
+            ],
+            appearance: new Cesium.MaterialAppearance({
+                material:
+                    new Cesium.Material({
+                        fabric: {
+                            type: 'Image',
+                            uniforms: {
+                                image: chart.getDataURL()
+                            }
+                        }
+                    })
+            })
+        })
+        return criclePrimitive;
+    }
+    function genData(count) {
+        let nameList = [
+            '赵', '钱', '孙'
+        ];
+        let seriesData = [];
+        for (let i = 0; i < 3; i++) {
+            name = nameList[i];
+            seriesData.push({
+                name: name,
+                value: Math.round(Math.random() * 100000)
+            });
+        }
+        return {
+            seriesData: seriesData
+        };
+    }
+</script>
+
+</html>
